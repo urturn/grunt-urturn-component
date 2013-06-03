@@ -1,7 +1,7 @@
 {
   "name": "grunt-urturn-component",
   "description": "Manage the component.urturn.json manifest file.",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "homepage": "https://github.com/urturn/grunt-urturn-component",
   "author": {
     "name": "Olivier Amblet",
