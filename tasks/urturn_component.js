@@ -10,6 +10,10 @@
 
 var Component = require('../component.js');
 
+var bower = require("bower");
+var async = require("async");
+var path = require('path');
+
 module.exports = function(grunt) {
 
   // Please see the Grunt documentation for more information regarding task
@@ -17,47 +21,74 @@ module.exports = function(grunt) {
 
   grunt.registerTask('urturn_component', 'Manage urturn component.', function() {
     // Merge task-specific and/or target-specific options with these defaults.
-    var bower = require('bower');
-    var options = this.options();
-    var base = grunt.file.readJSON(bower.config.json);
-    var json = {};
-
-    json.name = base.name;
-    json.version = base.version;
-    json.dependencies = options.dependencies || base.dependencies;
-    json.includes = options.includes || [];
-    json.main = options.main;
-    json.assets = options.assets;
-    grunt.file.write('component.urturn.json', JSON.stringify(json, null, 2));
-    grunt.log.writeln("component.urturn.json written");
-  });
-
-  grunt.registerTask('urturn_component_install', "Install urturn component.", function() {
-    var bower = require('bower');
-    var path = require('path');
     var options = this.options({
-      dest: "lib"
+      bower: false,
+      manifest: false,
+      install: false
     });
-
-    var info = grunt.file.readJSON('component.urturn.json');
-    info.basedir = '.';
-    var component = Component.fromOptions(info);
-
-    Component.list.forEach(function(comp){
-      var files;
-      if(comp.includedIn){
-        console.log(comp.name, 'already included');
-        comp.assets.forEach(function(f){
-          grunt.file.copy( path.join(comp.basedir, f), path.join(options.dest, comp.name, f));
-        });
+    var done = this.async();
+    var bowerInstall = function(callback) {
+      if(options.bower){
+        grunt.log.write("Install bower components: ");
+        bower.commands.install()
+          .on('error', function(error){
+            console.log('an error occured');
+            callback(error);
+          })
+          .on('end', function(){
+            grunt.log.writeln("installed");
+            callback(null);
+          });
       } else {
-        console.log(comp.name, 'not included');
-        comp.files().forEach(function(f){
-          grunt.file.copy( path.join(comp.basedir, f), path.join(options.dest, comp.name, f));
-        });
+        callback();
       }
-    });
-    console.log('info', info);
-  });
+    };
+    var generateManifest = function(callback) {
+      if(options.manifest) {
+        grunt.log.write("Create manifest file: ");
+        var manifest = options.manifest;
+        var base = grunt.file.readJSON(bower.config.json);
+        var json = {};
+        json.name = base.name;
+        json.version = base.version;
+        json.dependencies = manifest.dependencies || base.dependencies;
+        json.includes = manifest.includes || [];
+        json.main = manifest.main;
+        json.assets = manifest.assets;
+        grunt.file.write('component.urturn.json', JSON.stringify(json, null, 2));
+        grunt.log.writeln("component.urturn.json written");
+        callback();
+      } else {
+        callback();
+      }
+    };
+    var urturnInstall = function(callback) {
+      if(options.install) {
+        grunt.log.write("Install urturn component: ");
+        var dest = options.install.dest || 'lib';
+        var info = grunt.file.readJSON('component.urturn.json');
+        info.basedir = '.';
+        var component = Component.fromOptions(info);
 
+        Component.list.forEach(function(comp){
+          var files;
+          if(comp.includedIn){
+            comp.assets.forEach(function(f){
+              grunt.file.copy( path.join(comp.basedir, f), path.join(dest, comp.name, f));
+            });
+          } else {
+            comp.files().forEach(function(f){
+              grunt.file.copy( path.join(comp.basedir, f), path.join(dest, comp.name, f));
+            });
+          }
+        });
+        grunt.log.writeln('installed');
+        callback();
+      } else {
+        callback();
+      }
+    };
+
+    async.series([bowerInstall, generateManifest, urturnInstall], done);
+  });
 };
