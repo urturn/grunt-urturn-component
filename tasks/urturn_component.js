@@ -19,16 +19,16 @@ module.exports = function(grunt) {
   // Please see the Grunt documentation for more information regarding task
   // creation: http://gruntjs.com/creating-tasks
 
-  grunt.registerTask('urturn_component', 'Manage urturn component.', function() {
+  grunt.registerMultiTask('urturn_component', 'Manage urturn component.', function() {
     // Merge task-specific and/or target-specific options with these defaults.
-    var options = this.options({
-      bower: false,
-      manifest: false,
-      install: false
-    });
+    var options = this.options({}),
+        bowerOpts = this.data.bower || false,
+        manifestOpts = this.data.manifest || false,
+        installOpts = this.data.install || false;
+
     var done = this.async();
     var bowerInstall = function(callback) {
-      if(options.bower){
+      if(bowerOpts){
         grunt.log.write("Install bower components: ");
         bower.commands.install()
           .on('error', function(error){
@@ -44,9 +44,9 @@ module.exports = function(grunt) {
       }
     };
     var generateManifest = function(callback) {
-      if(options.manifest) {
+      if(manifestOpts) {
         grunt.log.write("Create manifest file: ");
-        var manifest = options.manifest;
+        var manifest = manifestOpts;
         var base = grunt.file.readJSON(bower.config.json);
         var json = {};
         json.name = base.name;
@@ -63,9 +63,9 @@ module.exports = function(grunt) {
       }
     };
     var urturnInstall = function(callback) {
-      if(options.install) {
+      if(installOpts) {
         grunt.log.write("Install urturn component: ");
-        var dest = options.install.dest || 'lib';
+        var dest = installOpts.dest || 'lib';
         var info = grunt.file.readJSON('component.urturn.json');
         info.basedir = '.';
         var component = Component.fromOptions(info);
